@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Derkk.ai ASCII Generator</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .settings-toggle {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 48px;
+      height: 48px;
+      font-size: 20px;
+      border: none;
+      background-color: #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      z-index: 1001;
+      transition: background 0.3s ease;
+    }
+
+    .settings-toggle:hover {
+      background-color: #f0f0f0;
+    }
+
+    .settings-sidebar {
+      position: fixed;
+      top: 0;
+      right: -250px;
+      width: 250px;
+      height: 100%;
+      background-color: #ffffff;
+      box-shadow: -2px 0 12px rgba(0, 0, 0, 0.08);
+      transition: right 0.3s ease;
+      z-index: 1000;
+    }
+
+    .settings-sidebar.show {
+      right: 0;
+    }
+
+    .generated-box {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 60vmin;
+      height: 60vmin;
+      transform: translate(-50%, -50%);
+      background-color: #ffffff;
+      border: 2px solid #ccc;
+      border-radius: 16px;
+      box-shadow: 0 6px 30px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      display: none;
+      overflow-y: auto;
+    }
+
+    .generated-box.show {
+      display: block;
+    }
+
+    #generated-text {
+      font-family: monospace;
+      font-size: 16px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      text-align: center;
+    }
+
+    .logo {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo" id="logo">Derkk<span style="color: #888;">.ai</span></div>
+    <div class="top-actions">
+      <button class="icon-button">🔍</button>
+      <div class="account-wrapper">
+        <button id="account-btn" class="account-circle">👤</button>
+        <div id="account-menu" class="account-menu hidden">
+          <ul>
+            <li>🧠 My Derkk Bots</li>
+            <li>🎨 Style Settings</li>
+            <li>⚙️ Generator Settings</li>
+            <li>💾 Save/Export</li>
+            <li>📤 Upgrade Plan</li>
+            <li>🚪 Log Out</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <h1 id="main-title">Generate ASCII Art with Derkk</h1>
+
+    <div class="prompt-wrapper">
+      <form class="prompt-form" id="ascii-form">
+        <input type="text" id="ascii-input" placeholder="Enter your ASCII art prompt..." required />
+        <button type="submit">⬆️</button>
+      </form>
+    </div>
+
+    <div class="quick-actions" id="quick-actions">
+      <button>🎨 Generate a Derkk Candle</button>
+      <button>⚡ Quick Prompt</button>
+      <button>🖋️ Style: Block</button>
+      <button>🌀 Detailed</button>
+      <button>💾 Export</button>
+    </div>
+
+    <div class="grid" id="grid">
+      <div class="hover-wrap">
+        <img src="Cat.png" alt="ASCII Cat" />
+        <div class="prompt-text">Prompt: "A cat sitting sideways in ASCII"</div>
+      </div>
+      <div class="hover-wrap">
+        <img src="Pickatchu.png" alt="ASCII Pikachu" />
+        <div class="prompt-text">Prompt: "ASCII Pikachu cartoon-style"</div>
+      </div>
+      <div class="hover-wrap">
+        <img src="R2D2.png" alt="ASCII R2D2" />
+        <div class="prompt-text">Prompt: "Star Wars robot R2D2 in detailed ASCII form"</div>
+      </div>
+      <div class="hover-wrap">
+        <img src="Face.png" alt="ASCII Face" />
+        <div class="prompt-text">Prompt: "Side profile of a person facing left with detailed features"</div>
+      </div>
+    </div>
+
+    <div class="output-container" id="output-container">
+      <div class="image-preview">
+        <img id="generated-image" src="Face.png" alt="Generated ASCII" />
+      </div>
+      <div class="prompt-output" id="prompt-display">Your prompt will appear here</div>
+    </div>
+
+    <div class="generated-box hidden" id="generated-box">
+      <p id="generated-text">Your ASCII output will appear here</p>
+    </div>
+
+    <div class="settings-sidebar" id="settingsPanel"></div>
+    <button class="settings-toggle" id="settingsToggle">⚙️</button>
+  </main>
+
+  <script>
+    const accountBtn = document.getElementById('account-btn');
+    const accountMenu = document.getElementById('account-menu');
+    const form = document.getElementById("ascii-form");
+    const input = document.getElementById("ascii-input");
+    const promptWrapper = document.querySelector(".prompt-wrapper");
+    const generatedBox = document.getElementById("generated-box");
+    const generatedText = document.getElementById("generated-text");
+    const settingsToggle = document.getElementById("settingsToggle");
+    const settingsPanel = document.getElementById("settingsPanel");
+    const title = document.getElementById("main-title");
+    const quickActions = document.getElementById("quick-actions");
+    const grid = document.getElementById("grid");
+    const outputContainer = document.getElementById("output-container");
+    const logo = document.getElementById("logo");
+
+    settingsToggle.addEventListener("click", () => {
+      settingsPanel.classList.toggle("show");
+    });
+
+    accountBtn.addEventListener('click', () => {
+      accountMenu.classList.toggle('hidden');
+    });
+
+    window.addEventListener('click', (e) => {
+      if (!accountBtn.contains(e.target) && !accountMenu.contains(e.target)) {
+        accountMenu.classList.add('hidden');
+      }
+    });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const prompt = input.value.trim();
+      if (prompt) {
+        title.style.display = "none";
+        quickActions.style.display = "none";
+        grid.style.display = "none";
+        outputContainer.style.display = "none";
+
+        promptWrapper.style.position = "fixed";
+        promptWrapper.style.bottom = "40px";
+        promptWrapper.style.left = "50%";
+        promptWrapper.style.transform = "translateX(-50%)";
+
+        generatedText.textContent = prompt;
+        generatedBox.classList.remove("hidden");
+        generatedBox.classList.add("show");
+
+        input.value = "";
+      }
+    });
+
+    logo.addEventListener("click", () => {
+      location.reload(); // Reloads the page to return to the starter view
+    });
+  </script>
+</body>
+</html>
