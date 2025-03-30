@@ -5,7 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Derkk.ai ASCII Generator</title>
   <link rel="stylesheet" href="style.css" />
+  <script defer src="interactions.js"></script>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <script src="https://kit.fontawesome.com/5f15b7592d.js" crossorigin="anonymous"></script>
+
   <style>
+    /* Floating Settings Button (Bottom Right) */
     .settings-toggle {
       position: fixed;
       bottom: 24px;
@@ -13,19 +18,22 @@
       width: 48px;
       height: 48px;
       font-size: 20px;
+      background-color: #fff;
       border: none;
-      background-color: #ffffff;
       border-radius: 50%;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      color: #111;
       cursor: pointer;
-      z-index: 1001;
       transition: background 0.3s ease;
+      z-index: 1001;
+      font-family: 'Courier New', monospace;
     }
-
+  
     .settings-toggle:hover {
-      background-color: #f0f0f0;
+      background-color: #f5f5f5;
     }
-
+  
+    /* Slide-out Settings Sidebar */
     .settings-sidebar {
       position: fixed;
       top: 0;
@@ -36,12 +44,40 @@
       box-shadow: -2px 0 12px rgba(0, 0, 0, 0.08);
       transition: right 0.3s ease;
       z-index: 1000;
+      padding: 24px;
+      font-family: 'Courier New', monospace;
+      overflow-y: auto;
     }
-
+  
     .settings-sidebar.show {
       right: 0;
     }
-
+  
+    .settings-sidebar h2 {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #111;
+    }
+  
+    .settings-sidebar label {
+      display: block;
+      margin-bottom: 16px;
+      font-size: 14px;
+      color: #333;
+    }
+  
+    .settings-sidebar select,
+    .settings-sidebar input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      margin-top: 6px;
+    }
+  
+    /* Generated Box (Popup Display) */
     .generated-box {
       position: absolute;
       top: 50%;
@@ -52,33 +88,58 @@
       background-color: #ffffff;
       border: 2px solid #ccc;
       border-radius: 16px;
-      box-shadow: 0 6px 30px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
       padding: 30px;
       display: none;
       overflow-y: auto;
+      font-family: 'Courier New', monospace;
     }
-
+  
     .generated-box.show {
       display: block;
     }
-
+  
     #generated-text {
-      font-family: monospace;
       font-size: 16px;
       line-height: 1.5;
       white-space: pre-wrap;
       word-wrap: break-word;
       text-align: center;
+      color: #222;
     }
-
+  
+    /* Logo (Top Left or Header Branding) */
     .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 24px;
+      font-weight: bold;
+      font-family: 'Courier New', monospace;
+      color: #111;
       cursor: pointer;
     }
+  
+    .logo .dot {
+      color: #888;
+    }
+  
+    .logo i {
+      font-size: 22px;
+      color: #111;
+    }
   </style>
+
+
+
+
 </head>
 <body>
   <header class="topbar">
-    <div class="logo" id="logo">Derkk<span style="color: #888;">.ai</span></div>
+    <div class="logo" id="logo">
+      <i class="fas fa-robot"></i>
+      <span>Derkk<span class="dot">.ai</span></span>
+    </div>
     <div class="top-actions">
       <button class="icon-button">🔍</button>
       <div class="account-wrapper">
@@ -90,13 +151,15 @@
             <li>⚙️ Generator Settings</li>
             <li>💾 Save/Export</li>
             <li>📤 Upgrade Plan</li>
-            <li>🚪 Log Out</li>
+            <li><a href="signin.html">🚪 Log In</a></li>
           </ul>
         </div>
       </div>
     </div>
   </header>
 
+
+  
   <main>
     <h1 id="main-title">Generate ASCII Art with Derkk</h1>
 
@@ -108,11 +171,11 @@
     </div>
 
     <div class="quick-actions" id="quick-actions">
-      <button>🎨 Generate a Derkk Candle</button>
-      <button>⚡ Quick Prompt</button>
-      <button>🖋️ Style: Block</button>
-      <button>🌀 Detailed</button>
-      <button>💾 Export</button>
+      <button id="generate-candle">🎨 Generate a Derkk Candle</button>
+      <button id="quick-prompt">⚡ Quick Prompt</button>
+      <button id="style-block">🖋️ Style: Block</button>
+      <button id="detail-toggle">🌀 Detailed</button>
+      <button id="export-btn">💾 Export</button>
     </div>
 
     <div class="grid" id="grid">
@@ -145,65 +208,399 @@
       <p id="generated-text">Your ASCII output will appear here</p>
     </div>
 
-    <div class="settings-sidebar" id="settingsPanel"></div>
-    <button class="settings-toggle" id="settingsToggle">⚙️</button>
+
+
+    <div class="modal-overlay" id="styleModal">
+      <div class="modal-window">
+        <span class="close-btn" id="closeStyleModal">&times;</span>
+        <h2>Style Settings</h2>
+        <p>Customize how your ASCII art is rendered:</p>
+    
+        <label>
+          Font Family:
+          <select id="ascii-font">
+            <option value="monospace">Monospace</option>
+            <option value="Courier New">Courier New</option>
+            <option value="Fira Code">Fira Code</option>
+            <option value="Arial">Arial</option>
+          </select>
+        </label>
+    
+        <label>
+          Font Size:
+          <input type="range" min="10" max="30" value="16" id="ascii-size" />
+          <span id="fontSizeDisplay">16px</span>
+        </label>
+    
+        <label>
+          Bold Text:
+          <input type="checkbox" id="ascii-bold" />
+        </label>
+    
+        <label>
+          ASCII Style:
+          <select id="ascii-style">
+            <option value="block">🟥 Blocky</option>
+            <option value="dot">⚫ Dot Matrix</option>
+            <option value="line">📏 Line Art</option>
+            <option value="noise">✨ Grainy</option>
+          </select>
+        </label>
+    
+        <div style="margin-top: 20px;">
+          <button id="apply-style-settings">Apply Style</button>
+        </div>
+      </div>
+    </div>
+
+
+
+
+
+
+    <div class="modal-overlay" id="settingsModal">
+      <div class="modal-window">
+        <span class="close-btn" id="closeSettingsModal">&times;</span>
+        
+        <h2>Generator Settings</h2>
+        <p>Adjust how Derkk.ai works:</p>
+    
+        <label>
+          Default Resolution:
+          <select id="gen-resolution">
+            <option value="low">Low (Fast)</option>
+            <option value="medium" selected>Medium (Balanced)</option>
+            <option value="high">High (Detailed)</option>
+          </select>
+        </label>
+    
+        <label>
+          Output Format:
+          <select id="output-format">
+            <option value="text">Plain Text</option>
+            <option value="image">Image Preview</option>
+            <option value="download">Download File</option>
+          </select>
+        </label>
+    
+        <label>
+          Save Prompts Automatically:
+          <input type="checkbox" id="auto-save-prompts" checked />
+        </label>
+    
+        <label>
+          Enable Smart Suggestions:
+          <input type="checkbox" id="smart-suggestions" />
+        </label>
+    
+        <label>
+          Theme:
+          <select id="theme-select">
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </label>
+    
+        <div style="margin-top: 20px;">
+          <button id="apply-generator-settings">Apply Settings</button>
+        </div>
+      </div>
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="upgradeModal" class="upgrade-modal">
+      <div class="upgrade-modal-content large">
+        <span class="close-upgrade-modal" id="closeUpgradeModal">&times;</span>
+        <h2 class="upgrade-title">Upgrade Plan</h2>
+        <div class="plan-switch">
+          <button class="active">Personal</button>
+          <button>Business</button>
+        </div>
+
+
+
+
+
+        <div class="plan-options">
+          <div class="plan-card">
+            <h3>Free</h3>
+            <p class="price">$0<span>/month</span></p>
+            <ul>
+              <li>🎨 Access to basic styles</li>
+              <li>🖼️ Limited ASCII prompts per day</li>
+              <li>📁 No saving or exporting</li>
+            </ul>
+            <button class="current">Current Plan</button>
+          </div>
+          <div class="plan-card">
+            <h3>Plus</h3>
+            <p class="price">$5<span>/month</span></p>
+            <ul>
+              <li>🚀 Unlimited prompts</li>
+              <li>🎨 Extra style packs</li>
+              <li>💾 Save/Export features</li>
+              <li>📊 Generator settings unlocked</li>
+            </ul>
+            <button class="upgrade">Upgrade</button>
+          </div>
+          <div class="plan-card highlight">
+            <h3>Pro</h3>
+            <p class="price">$10<span>/month</span></p>
+            <ul>
+              <li>🧠 Access to all advanced features</li>
+              <li>📸 AI image to ASCII conversion</li>
+              <li>💬 Priority support</li>
+              <li>⚙️ Full customization tools</li>
+            </ul>
+            <button class="upgrade">Go Pro</button>
+
+
+          </div>
+
+
+          </div>
+
+          <div class="plan-options business hidden" id="business-plans">
+            <div class="plan-card team-card">
+              <h3>Team</h3>
+              <p class="price">$25<span>/month</span></p>
+              <ul>
+                <li>💼 Secure shared workspace for teams</li>
+                <li>🔐 Higher limits than Plus (GPT-4, GPT-4o, DALL·E, tools)</li>
+                <li>🧠 Access to multiple models (o3-mini, o3-mini-high, o1)</li>
+                <li>🎧 Standard + Advanced Audio Modes</li>
+                <li>👥 Custom GPT creation & sharing</li>
+                <li>🛡️ Admin Console & unified billing</li>
+                <li>📂 Team data excluded from training</li>
+              </ul>
+              <button class="upgrade">Add Team Workspace</button>
+            </div>
+          </div>
+  
+        </div>
+      </div>
+      
+  
+  
+
+        </div>
+
+
+
+
+ 
+
+
+
+
+
+
+        <style>
+          * {
+            box-sizing: border-box;
+          }
+        
+          .upgrade-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            font-family: 'Courier New', monospace;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+          }
+        
+          .upgrade-modal.show {
+            opacity: 1;
+            pointer-events: auto;
+          }
+        
+          .upgrade-modal-content.large {
+            background: #fff;
+            border-radius: 16px;
+            padding: 40px;
+            width: 90%;
+            max-width: 1100px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            animation: fadeIn 0.6s ease forwards;
+          }
+        
+          .upgrade-modal.show .upgrade-modal-content {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        
+          .upgrade-title {
+            text-align: center;
+            font-size: 32px;
+            margin-bottom: 24px;
+            font-weight: bold;
+          }
+        
+          .plan-switch {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 24px;
+          }
+        
+          .plan-switch button {
+            padding: 10px 20px;
+            border: none;
+            background: #f0f0f0;
+            color: #111;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+          }
+        
+          .plan-switch button:hover {
+            background-color: #e6e6e6;
+          }
+        
+          .plan-switch button.active {
+            background: #111;
+            color: #fff;
+          }
+        
+          .plan-options {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+          }
+        
+          .plan-card {
+            flex: 1 1 300px;
+            background: #fafafa;
+            padding: 24px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.05);
+            font-family: 'Courier New', monospace;
+            transition: transform 0.2s ease;
+          }
+        
+          .plan-card:hover {
+            transform: translateY(-4px);
+          }
+        
+          .plan-card.highlight {
+            border: 2px solid #111;
+          }
+        
+          .plan-card h3 {
+            font-size: 24px;
+            margin-bottom: 12px;
+          }
+        
+          .price {
+            font-size: 28px;
+            margin-bottom: 16px;
+            font-weight: bold;
+          }
+        
+          .price span {
+            font-size: 16px;
+            color: #888;
+          }
+        
+          .plan-card ul {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px 0;
+            font-size: 15px;
+            line-height: 1.6;
+            color: #333;
+          }
+        
+          .plan-card button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            background: #111;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            transition: background 0.3s ease;
+          }
+        
+          .plan-card button:hover {
+            background: #333;
+          }
+        
+          .plan-card .current {
+            background: #ccc;
+            color: #333;
+            cursor: default;
+          }
+        
+          .team-card {
+            max-width: 400px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 20px;
+          }
+        
+          .team-card ul {
+            text-align: left;
+            margin-left: 0;
+            padding-left: 0;
+            list-style-position: inside;
+          }
+        
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        </style>
+
+
+
+
   </main>
 
-  <script>
-    const accountBtn = document.getElementById('account-btn');
-    const accountMenu = document.getElementById('account-menu');
-    const form = document.getElementById("ascii-form");
-    const input = document.getElementById("ascii-input");
-    const promptWrapper = document.querySelector(".prompt-wrapper");
-    const generatedBox = document.getElementById("generated-box");
-    const generatedText = document.getElementById("generated-text");
-    const settingsToggle = document.getElementById("settingsToggle");
-    const settingsPanel = document.getElementById("settingsPanel");
-    const title = document.getElementById("main-title");
-    const quickActions = document.getElementById("quick-actions");
-    const grid = document.getElementById("grid");
-    const outputContainer = document.getElementById("output-container");
-    const logo = document.getElementById("logo");
 
-    settingsToggle.addEventListener("click", () => {
-      settingsPanel.classList.toggle("show");
-    });
 
-    accountBtn.addEventListener('click', () => {
-      accountMenu.classList.toggle('hidden');
-    });
-
-    window.addEventListener('click', (e) => {
-      if (!accountBtn.contains(e.target) && !accountMenu.contains(e.target)) {
-        accountMenu.classList.add('hidden');
-      }
-    });
-
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const prompt = input.value.trim();
-      if (prompt) {
-        title.style.display = "none";
-        quickActions.style.display = "none";
-        grid.style.display = "none";
-        outputContainer.style.display = "none";
-
-        promptWrapper.style.position = "fixed";
-        promptWrapper.style.bottom = "40px";
-        promptWrapper.style.left = "50%";
-        promptWrapper.style.transform = "translateX(-50%)";
-
-        generatedText.textContent = prompt;
-        generatedBox.classList.remove("hidden");
-        generatedBox.classList.add("show");
-
-        input.value = "";
-      }
-    });
-
-    logo.addEventListener("click", () => {
-      location.reload(); // Reloads the page to return to the starter view
-    });
-  </script>
 </body>
 </html>
